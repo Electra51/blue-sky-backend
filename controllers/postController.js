@@ -2,6 +2,7 @@ import postModel from "../models/postModel.js";
 import tagModel from "../models/tagModel.js";
 import mongoose from "mongoose";
 import userModel from "../models/userModel.js";
+import categoryModel from "../models/categoryModel.js";
 
 //sigle post
 export const getBlogPostByIdController = async (req, res) => {
@@ -19,6 +20,7 @@ export const getBlogPostByIdController = async (req, res) => {
       .populate("users")
       .populate("category")
       .populate("tags")
+      .populate("comments.user")
       .select("-photo");
 
     if (!post) {
@@ -56,6 +58,84 @@ export const getAllBlogPostsController = async (req, res) => {
     console.log(err);
   }
 };
+
+//categorywise blog post
+export const getCategoryWisePostsController = async (req, res) => {
+  try {
+    // Fetch all categories
+    const categories = await categoryModel.find({});
+
+    // Fetch posts for each category
+    const categoryWisePosts = await Promise.all(
+      categories.map(async (category) => {
+        const posts = await postModel
+          .find({ category: category._id })
+          .select("-photo") // Exclude photo field
+          .sort({ createdAt: -1 }); // Sort posts by creation date
+
+        return {
+          categoryName: category.name,
+          posts,
+          CountPost: posts.length, // Count of posts for this category
+        };
+      })
+    );
+
+    res.status(200).send({
+      success: true,
+      message: "Category-wise posts fetched successfully",
+      data: categoryWisePosts,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      success: false,
+      message: "Error fetching category-wise posts",
+      error: err.message,
+    });
+  }
+};
+
+export const getCategoryIdWisePosts = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    console.log(categoryId);
+    // Validate categoryId
+    if (!categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: "Category ID is required",
+      });
+    }
+
+    // Find posts by category
+    const posts = await postModel
+      .find({ category: categoryId })
+      .populate("category", "name") // Optional: populate category name
+      .populate("users", "nickname createdAt") // Optional: populate user details
+      .exec();
+
+    if (!posts.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No posts found for this category",
+      });
+    }
+
+    // Respond with the posts
+    return res.status(200).json({
+      success: true,
+      data: posts,
+    });
+  } catch (error) {
+    console.error("Error fetching category-wise posts:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
 //user wise blogpost
 export const getBlogPostByUserId = async (req, res) => {
   try {
@@ -280,80 +360,6 @@ export const updatePostStatusController = async (req, res) => {
   }
 };
 
-// export const addCommentAndRating = async (req, res) => {
-//   try {
-//     const { postId, text, ratingValue, userId } = req.body; // `text` for comment, `ratingValue` for rating
-
-//     // Find the user
-//     const user = await userModel.findById(userId);
-//     if (!user) {
-//       return res.status(404).json({ error: "User not found" });
-//     }
-
-//     // Check if the user has the correct role
-//     if (user.role !== 0) {
-//       return res
-//         .status(403)
-//         .json({ error: "You are not allowed to add comments or ratings" });
-//     }
-
-//     // Find the post
-//     const post = await postModel.findById(postId);
-//     if (!post) {
-//       return res.status(404).json({ error: "Post not found" });
-//     }
-
-//     // Add the comment
-//     if (text) {
-//       post.comments.push({
-//         user: userId,
-//         text,
-//       });
-//     }
-
-//     // Add the rating
-//     if (ratingValue) {
-//       if (ratingValue < 1 || ratingValue > 5) {
-//         return res
-//           .status(400)
-//           .json({ error: "Rating value must be between 1 and 5" });
-//       }
-
-//       // Check if the user has already rated the post
-//       const existingRating = post.ratings.find(
-//         (rating) => rating.user.toString() === userId
-//       );
-//       if (existingRating) {
-//         // Update the existing rating
-//         existingRating.value = ratingValue;
-//       } else {
-//         // Add a new rating
-//         post.ratings.push({
-//           user: userId,
-//           value: ratingValue,
-//         });
-//       }
-
-//       // Recalculate the average rating
-//       const totalRating = post.ratings.reduce(
-//         (sum, rating) => sum + rating.value,
-//         0
-//       );
-//       post.averageRating = totalRating / post.ratings.length;
-//     }
-
-//     // Save the post
-//     await post.save();
-
-//     res
-//       .status(200)
-//       .json({ message: "Comment and/or rating added successfully", post });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: "Error adding comment or rating" });
-//   }
-// };
-
 export const addComment = async (req, res) => {
   try {
     const { postId, text, userId } = req.body;
@@ -407,38 +413,25 @@ export const addRating = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Check if the user has the correct role
-    if (user.role !== 0) {
-      return res
-        .status(403)
-        .json({ error: "You are not allowed to add ratings" });
-    }
-
     // Find the post
     const post = await postModel.findById(postId);
     if (!post) {
       return res.status(404).json({ error: "Post not found" });
     }
 
-    // Validate rating value
-    if (!ratingValue || ratingValue < 1 || ratingValue > 5) {
-      return res
-        .status(400)
-        .json({ error: "Rating value must be between 1 and 5" });
-    }
-
     // Check if the user has already rated the post
     const existingRating = post.ratings.find(
       (rating) => rating.user.toString() === userId
     );
+
     if (existingRating) {
       // Update the existing rating
-      existingRating.value = ratingValue;
+      existingRating.value = ratingValue / 2;
     } else {
       // Add a new rating
       post.ratings.push({
         user: userId,
-        value: ratingValue,
+        value: ratingValue / 2,
       });
     }
 
@@ -517,19 +510,34 @@ export const toggleReaction = async (req, res) => {
 
 export const incrementShareCount = async (req, res) => {
   try {
-    const { postId } = req.body; // Only postId is required to update the share count
-    console.log("first", postId);
+    const { postId, userId } = req.body;
+
+    // Find the post by ID
     const post = await postModel.findById(postId);
 
     if (!post) {
       return res.status(404).json({ error: "Post not found" });
     }
-    // Increment the share count
+
+    // Check if the user has already shared the post
+    if (post.sharedUsers.includes(userId)) {
+      return res
+        .status(200)
+        .json({ message: "User has already shared this post" });
+    }
+
+    // Increment the share count and add the userId to sharedUsers
     post.shareCount = (post.shareCount || 0) + 1;
+    post.sharedUsers.push(userId);
 
     await post.save();
-    res.status(200).json({ message: "Share count updated successfully" });
+
+    res.status(200).json({
+      message: "Share count updated successfully",
+      shareCount: post.shareCount,
+    });
   } catch (error) {
+    console.error("Error updating share count:", error);
     res.status(500).json({ error: "Error updating share count" });
   }
 };

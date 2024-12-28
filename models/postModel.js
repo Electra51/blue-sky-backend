@@ -20,7 +20,7 @@ const ratingSchema = new mongoose.Schema(
       ref: "users",
       required: true,
     },
-    value: { type: Number, required: true, min: 1, max: 5 }, // Assuming a rating scale of 1-5
+    value: { type: Number, required: true }, // Assuming a rating scale of 1-5
   },
   { _id: false }
 );
@@ -83,6 +83,8 @@ const postSchema = new mongoose.Schema(
       type: Number,
       default: 0, // Tracks how many times the post has been shared
     },
+
+    sharedUsers: { type: [String], default: [] },
   },
   { timestamps: true }
 );

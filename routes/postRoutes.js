@@ -7,6 +7,8 @@ import {
   getAllBlogPostsController,
   getBlogPostByIdController,
   getBlogPostByUserId,
+  getCategoryIdWisePosts,
+  getCategoryWisePostsController,
   incrementShareCount,
   toggleReaction,
   updateBlogPostController,
@@ -37,6 +39,8 @@ router.patch("/posts/:id/status", updatePostStatusController);
 router.post("/posts/:postId/add-comments", addComment);
 router.post("/posts/:postId/add-rating", addRating);
 router.post("/posts/:postId/toggleReaction", toggleReaction);
-router.post("/posts/:postId/incrementShare", incrementShareCount);
+router.post("/posts/:postId/incrementShareCount", incrementShareCount);
+router.get("/category-wise-posts", getCategoryWisePostsController);
+router.get("/category-wise-posts/:categoryId", getCategoryIdWisePosts);
 
 export default router;
