@@ -8,9 +8,15 @@ import tagRoutes from "./routes/tagRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import cors from "cors";
 import connectDB from "./config/db.js";
-
+import { v2 as cloudinary } from "cloudinary";
 dotenv.config();
 
+// Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 //database
 connectDB();
 
