@@ -97,7 +97,7 @@ export const loginController = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        isVerified: user.isVerified, // Ensure this is part of the schema
+        isVerified: user.isVerified,
       },
       token,
     });
