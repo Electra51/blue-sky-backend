@@ -541,3 +541,32 @@ export const incrementShareCount = async (req, res) => {
     res.status(500).json({ error: "Error updating share count" });
   }
 };
+
+export const findRelatedPostsByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params; // Get the category ID from the route parameters
+
+    // Find related posts by category
+    const relatedPosts = await postModel
+      .find({ category: categoryId }) // Query by category ObjectId
+      .limit(5) // Limit to 5 posts
+      .populate("category")
+      .populate("users"); // Populate category to fetch its name
+
+    // If no related posts are found
+    if (relatedPosts.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No posts found for this category" });
+    }
+
+    // If related posts are found
+    res.status(200).json({
+      message: "Related posts found successfully",
+      relatedPosts,
+    });
+  } catch (error) {
+    console.error("Error finding related posts:", error);
+    res.status(500).json({ error: "Error finding related posts" });
+  }
+};

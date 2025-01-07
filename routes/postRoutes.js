@@ -4,6 +4,7 @@ import {
   addRating,
   createBlogPost,
   deleteBlogPostController,
+  findRelatedPostsByCategory,
   getAllBlogPostsController,
   getBlogPostByIdController,
   getBlogPostByUserId,
@@ -42,5 +43,6 @@ router.post("/posts/:postId/toggleReaction", toggleReaction);
 router.post("/posts/:postId/incrementShareCount", incrementShareCount);
 router.get("/category-wise-posts", getCategoryWisePostsController);
 router.get("/category-wise-posts/:categoryId", getCategoryIdWisePosts);
+router.get("/posts/related/:categoryId", findRelatedPostsByCategory);
 
 export default router;
